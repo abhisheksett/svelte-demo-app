@@ -3,6 +3,8 @@
 	import {onMount} from 'svelte';
 	import {select} from './select';
 	import Welcome from './screens/Welcome.svelte';
+	import Game from './screens/Game.svelte';
+	import {load_image} from './utils';
 
 	let state = 'welcome'; //or 'playing'
 	let celebs_promise;
@@ -43,6 +45,8 @@
 
 	onMount(() => {
 		celebs_promise = load_celebs();
+		load_image('/icons/right.svg');
+		load_image('/icons/wrong.svg');
 	});
 
 </script>
@@ -50,7 +54,7 @@
 	{#if state === 'welcome'}
 		<Welcome on:select={start}/>
 	{:else if state === 'playing'}
-		<p>Playing screen</p>
+		<Game {selection} on:reset={() => state = 'welcome'}/>
 	{/if}
 </main>
 
