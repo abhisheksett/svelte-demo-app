@@ -3,7 +3,7 @@
 
 	const dispatch = createEventDispatcher();
 
-	const selected = false;
+	let selected = false;
 
 	const categories = [
 		{ slug: 'actors', label: 'Actors' },
