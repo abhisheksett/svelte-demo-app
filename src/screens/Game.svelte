@@ -1,56 +1,53 @@
 <script>
 	import Card from '../components/Card.svelte';
-    import { sleep, pick_random, load_image } from '../utils.js';
-    import {createEventDispatcher} from 'svelte';
-    import {fly, crossfade} from 'svelte/transition';
-    import * as eases from 'svelte/easing';
+	import { sleep, pick_random, load_image } from '../utils.js';
+	import { createEventDispatcher } from 'svelte';
+	import { fly, crossfade } from 'svelte/transition';
+	import * as eases from 'svelte/easing';
 
-    export let selection;
-    const dispatch = createEventDispatcher();
-    const results = Array(selection.length);
-    let last_result;
-    let i = 0;
-    let done = false;
-    let ready = true;
+	export let selection;
+	const dispatch = createEventDispatcher();
+	const results = Array(selection.length);
+	let last_result;
+	let i = 0;
+	let done = false;
+	let ready = true;
 
-    $: score = results.filter(x => x === 'right').length;
+	$: score = results.filter((x) => x === 'right').length;
 
-    const [send, receive] = crossfade({
+	const [send, receive] = crossfade({
 		easing: eases.cubicOut,
-		duration: 300
-    });
-    
-    const pick_message = p => {
+		duration: 300,
+	});
+
+	const pick_message = (p) => {
 		if (p <= 0.2) return pick_random([`Oof.`, `Better luck next time?`]);
 		if (p <= 0.5) return pick_random([`I've seen worse`, `Keep trying!`]);
 		if (p <= 0.8) return pick_random([`Yeah!`, `Not bad. Practice makes perfect`]);
 		if (p < 1) return pick_random([`Impressive.`]);
 		return pick_random([`Flawless victory`, `Top marks`]);
-    };
-    
-	const load_details = async (celeb) => {
-		const res = await fetch(`https://cameo-explorer.netlify.app/celebs/${celeb.id}.json`);
-        const details = await res.json();
-        await load_image(details.image);
-        return details;
 	};
 
-	const promises = selection.map(round => Promise.all([
-		load_details(round.a),
-		load_details(round.b)
-	]));
+	const load_details = async (celeb) => {
+		const res = await fetch(`https://cameo-explorer.netlify.app/celebs/${celeb.id}.json`);
+		const details = await res.json();
+		await load_image(details.image);
+		return details;
+	};
+
+	const promises = selection.map((round) =>
+		Promise.all([load_details(round.a), load_details(round.b)]),
+	);
 
 	const submit = async (a, b, sign) => {
-		last_result = Math.sign(a.price - b.price) === sign
-			? 'right'
-			: 'wrong';
+		last_result = Math.sign(a.price - b.price) === sign ? 'right' : 'wrong';
 
 		await sleep(1500);
 
 		results[i] = last_result;
-        last_result = null;
-        
-        await sleep(500);
+		last_result = null;
+
+		await sleep(500);
 
 		if (i < selection.length - 1) {
 			i += 1;
@@ -60,81 +57,7 @@
 	};
 </script>
 
-<header>
-	<p>Tap on the more monetisable celebrity's face, or tap 'same price' if society values them equally.</p>
-</header>
-
-<div class="game-container">
-    {#if done}
-        <div class="done">
-            <strong>{score}/{results.length}</strong>
-            <p>{pick_message(score / results.length)}</p>
-            <button on:click={() => dispatch('reset')}>Back to main</button>
-        </div>
-    {:else if ready}
-        {#await promises[i] then [a, b]}
-        <div class="game"
-            in:fly={{duration: 200, y:20}}
-            out:fly={{duration: 200, y:-20}}
-            on:outrostart={() => ready = false}
-            on:outroend={() => ready = true}
-        >
-			<div class="card-container">
-				<Card
-					celeb={a}
-                    on:select={() => submit(a, b, 1)}
-                    showprice={!!last_result}
-                    winner={a.price >= b.price}
-				/>
-			</div>
-
-			<div>
-				<button class="same" on:click={() => submit(a, b, 0)}>
-					same price
-				</button>
-			</div>
-
-			<div class="card-container">
-				<Card
-					celeb={b}
-                    on:select={() => submit(a, b, -1)}
-                    showprice={!!last_result}
-                    winner={a.price < b.price}
-				/>
-			</div>
-		</div>
-	{:catch}
-		<p class="error">Oops! Failed to load data</p>
-	{/await}
-    {/if}
-	
-</div>
-
-{#if last_result}
-	<img
-		in:fly={{duration: 200, x: 100}}
-		out:send={{key: i}}
-		class="giant-result"
-		alt="{last_result} answer"
-		src="/icons/{last_result}.svg"
-	>
-{/if}
-
-<div class="results" style="grid-template-columns: repeat({results.length}, 1fr)">
-	{#each results as result, i}
-		<span class="result">
-			{#if result}
-				<img
-					in:receive={{key: i}}
-					alt="{result} answer"
-					src="/icons/{result}.svg"
-				>
-			{/if}
-		</span>
-	{/each}
-</div>
-
-<style>
+<style type="text/scss">
 	.game-container {
 		flex: 1;
 	}
@@ -189,7 +112,7 @@
 	}
 
 	.result {
-		background: rgba(255,255,255,0.1);
+		background: rgba(255, 255, 255, 0.1);
 		border-radius: 50%;
 		padding: 0 0 100% 0;
 		transition: background 0.2s;
@@ -202,9 +125,9 @@
 		height: 100%;
 		left: 0;
 		top: 0;
-    }
-    
-    .done {
+	}
+
+	.done {
 		position: absolute;
 		width: 100%;
 		height: 100%;
@@ -219,7 +142,6 @@
 		font-size: 6em;
 		font-weight: 700;
 	}
-
 
 	@media (min-width: 640px) {
 		.game {
@@ -236,3 +158,71 @@
 		}
 	}
 </style>
+
+<header>
+	<p>
+		Tap on the more monetisable celebrity's face, or tap 'same price' if society values them
+		equally.
+	</p>
+</header>
+
+<div class="game-container">
+	{#if done}
+		<div class="done">
+			<strong>{score}/{results.length}</strong>
+			<p>{pick_message(score / results.length)}</p>
+			<button on:click={() => dispatch('reset')}>Back to main</button>
+		</div>
+	{:else if ready}
+		{#await promises[i] then [a, b]}
+			<div
+				class="game"
+				in:fly={{ duration: 200, y: 20 }}
+				out:fly={{ duration: 200, y: -20 }}
+				on:outrostart={() => (ready = false)}
+				on:outroend={() => (ready = true)}>
+				<div class="card-container">
+					<Card
+						celeb={a}
+						on:select={() => submit(a, b, 1)}
+						showprice={!!last_result}
+						winner={a.price >= b.price} />
+				</div>
+
+				<div>
+					<button class="same" on:click={() => submit(a, b, 0)}>same price</button>
+				</div>
+
+				<div class="card-container">
+					<Card
+						celeb={b}
+						on:select={() => submit(a, b, -1)}
+						showprice={!!last_result}
+						winner={a.price < b.price} />
+				</div>
+			</div>
+		{:catch}
+			<p class="error">Oops! Failed to load data</p>
+		{/await}
+	{/if}
+
+</div>
+
+{#if last_result}
+	<img
+		in:fly={{ duration: 200, x: 100 }}
+		out:send={{ key: i }}
+		class="giant-result"
+		alt="{last_result} answer"
+		src="/icons/{last_result}.svg" />
+{/if}
+
+<div class="results" style="grid-template-columns: repeat({results.length}, 1fr)">
+	{#each results as result, i}
+		<span class="result">
+			{#if result}
+				<img in:receive={{ key: i }} alt="{result} answer" src="/icons/{result}.svg" />
+			{/if}
+		</span>
+	{/each}
+</div>
