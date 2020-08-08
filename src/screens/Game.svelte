@@ -57,7 +57,7 @@
 	};
 </script>
 
-<style type="text/scss">
+<style>
 	.game-container {
 		flex: 1;
 	}
